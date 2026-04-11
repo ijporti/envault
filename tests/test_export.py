@@ -74,3 +74,19 @@ def test_export_empty_secrets():
     for fmt in SUPPORTED_FORMATS:
         result = export_secrets({}, fmt)
         assert isinstance(result, str)
+
+
+@pytest.mark.parametrize("fmt", SUPPORTED_FORMATS)
+def test_export_secrets_returns_string_for_all_formats(fmt):
+    """Ensure every supported format returns a non-empty string for non-empty input."""
+    result = export_secrets(SAMPLE, fmt)
+    assert isinstance(result, str)
+    assert len(result) > 0
+
+
+@pytest.mark.parametrize("fmt", SUPPORTED_FORMATS)
+def test_export_secrets_contains_all_keys(fmt):
+    """Ensure all secret keys appear in the exported output for every format."""
+    result = export_secrets(SAMPLE, fmt)
+    for key in SAMPLE:
+        assert key in result, f"Key '{key}' missing in {fmt} output"
