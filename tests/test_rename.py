@@ -58,6 +58,14 @@ def test_rename_key_overwrites_when_flag_set(vault_dir):
     assert "OLD_KEY" not in vault
 
 
+def test_rename_key_other_keys_unaffected(vault_dir):
+    """Renaming a key must not modify other keys in the same environment."""
+    _seed(vault_dir, "dev", {"OLD_KEY": "v1", "UNRELATED": "keep-me"})
+    rename_key(vault_dir, "dev", "OLD_KEY", "NEW_KEY", PASSWORD)
+    vault = load_vault(vault_dir, "dev", PASSWORD)
+    assert vault["UNRELATED"] == "keep-me"
+
+
 def test_rename_key_all_envs_applies_to_matching_envs(vault_dir):
     _seed(vault_dir, "dev", {"OLD_KEY": "d"})
     _seed(vault_dir, "prod", {"OLD_KEY": "p"})
