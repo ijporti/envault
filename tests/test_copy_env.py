@@ -79,3 +79,11 @@ def test_copy_env_source_unchanged(vault_dir):
     # Source environment must remain intact.
     assert vault["production"]["DB_URL"] == "postgres://prod"
     assert vault["production"]["API_KEY"] == "prod-key"
+
+
+def test_copy_env_does_not_affect_other_environments(vault_dir):
+    """Copying between two environments must not modify unrelated environments."""
+    copy_env(vault_dir, "production", "development", PASSWORD)
+    vault = load_vault(vault_dir, PASSWORD)
+    # Staging should be completely unmodified.
+    assert vault["staging"] == {"DB_URL": "postgres://staging"}
