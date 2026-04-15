@@ -32,20 +32,22 @@ def _seed(vault_dir, env, data):
     save_vault(vault_dir, PASSWORD, {env: data})
 
 
+def _run_steps(vault_dir, steps, env="dev"):
+    """Helper: serialise *steps* to JSON, run cmd_pipeline, return the return code."""
+    args = _make_args(vault_dir, env=env, steps=json.dumps(steps))
+    return cmd_pipeline(args)
+
+
 # ---------------------------------------------------------------------------
 
 def test_cmd_pipeline_returns_zero_on_success(vault_dir):
     _seed(vault_dir, "dev", {"K": "v"})
-    steps_json = json.dumps([{"operation": "set", "params": {"key": "NEW", "value": "1"}}])
-    args = _make_args(vault_dir, steps=steps_json)
-    assert cmd_pipeline(args) == 0
+    assert _run_steps(vault_dir, [{"operation": "set", "params": {"key": "NEW", "value": "1"}}]) == 0
 
 
 def test_cmd_pipeline_applies_set_step(vault_dir):
     _seed(vault_dir, "dev", {})
-    steps_json = json.dumps([{"operation": "set", "params": {"key": "FOO", "value": "bar"}}])
-    args = _make_args(vault_dir, steps=steps_json)
-    cmd_pipeline(args)
+    _run_steps(vault_dir, [{"operation": "set", "params": {"key": "FOO", "value": "bar"}}])
     vault = load_vault(vault_dir, PASSWORD)
     assert vault["dev"]["FOO"] == "bar"
 
@@ -83,13 +85,10 @@ def test_cmd_pipeline_non_array_steps_returns_one(vault_dir):
 
 def test_cmd_pipeline_step_missing_operation_returns_one(vault_dir):
     _seed(vault_dir, "dev", {})
-    args = _make_args(vault_dir, steps=json.dumps([{"params": {}}]))
-    assert cmd_pipeline(args) == 1
+    assert _run_steps(vault_dir, [{"params": {}}]) == 1
 
 
 def test_cmd_pipeline_pipeline_error_returns_one(vault_dir):
     _seed(vault_dir, "dev", {})
     # 'set' without a key triggers PipelineError
-    steps_json = json.dumps([{"operation": "set", "params": {"value": "oops"}}])
-    args = _make_args(vault_dir, steps=steps_json)
-    assert cmd_pipeline(args) == 1
+    assert _run_steps(vault_dir, [{"operation": "set", "params": {"value": "oops"}}]) == 1
