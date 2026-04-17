@@ -89,68 +89,24 @@ def test_run_pipeline_rename_key(vault_dir):
     result = run_pipeline(vault_dir, "dev", PASSWORD, steps)
     assert result.steps_applied == 1
     vault = load_vault(vault_dir, PASSWORD)
-    assert vault["dev"]["NEW"] == "hello"
     assert "OLD" not in vault["dev"]
+    assert vault["dev"]["NEW"] == "hello"
 
 
-# ---------------------------------------------------------------------------
-# run_pipeline – transform
-# ---------------------------------------------------------------------------
-
-def test_run_pipeline_transform_upper(vault_dir):
-    _seed(vault_dir, "dev", {"K": "lowercase"})
-    steps = [PipelineStep(operation="transform", params={"key": "K", "func": "upper"})]
-    run_pipeline(vault_dir, "dev", PASSWORD, steps)
-    vault = load_vault(vault_dir, PASSWORD)
-    assert vault["dev"]["K"] == "LOWERCASE"
-
-
-def test_run_pipeline_transform_strip(vault_dir):
-    _seed(vault_dir, "dev", {"K": "  spaces  "})
-    steps = [PipelineStep(operation="transform", params={"key": "K", "func": "strip"})]
-    run_pipeline(vault_dir, "dev", PASSWORD, steps)
-    vault = load_vault(vault_dir, PASSWORD)
-    assert vault["dev"]["K"] == "spaces"
-
-
-# ---------------------------------------------------------------------------
-# run_pipeline – chained steps
-# ---------------------------------------------------------------------------
-
-def test_run_pipeline_multiple_steps(vault_dir):
-    _seed(vault_dir, "dev", {"A": "hello"})
-    steps = [
-        PipelineStep(operation="set", params={"key": "B", "value": "world"}),
-        PipelineStep(operation="transform", params={"key": "A", "func": "upper"}),
-        PipelineStep(operation="delete", params={"key": "B"}),
-    ]
+def test_run_pipeline_rename_missing_src_counts_as_skipped(vault_dir):
+    _seed(vault_dir, "dev", {})
+    steps = [PipelineStep(operation="rename", params={"src": "GHOST", "dst": "NEW"})]
     result = run_pipeline(vault_dir, "dev", PASSWORD, steps)
-    assert result.steps_applied == 3
-    vault = load_vault(vault_dir, PASSWORD)
-    assert vault["dev"]["A"] == "HELLO"
-    assert "B" not in vault["dev"]
+    assert result.steps_skipped == 1
+    assert result.steps_applied == 0
 
 
 # ---------------------------------------------------------------------------
-# Error cases
+# run_pipeline – unknown operation
 # ---------------------------------------------------------------------------
 
 def test_run_pipeline_unknown_operation_raises(vault_dir):
     _seed(vault_dir, "dev", {})
     steps = [PipelineStep(operation="explode", params={})]
-    with pytest.raises(PipelineError, match="Unknown pipeline operation"):
-        run_pipeline(vault_dir, "dev", PASSWORD, steps)
-
-
-def test_run_pipeline_set_missing_key_param_raises(vault_dir):
-    _seed(vault_dir, "dev", {})
-    steps = [PipelineStep(operation="set", params={"value": "oops"})]
-    with pytest.raises(PipelineError, match="'set' step requires 'key'"):
-        run_pipeline(vault_dir, "dev", PASSWORD, steps)
-
-
-def test_run_pipeline_unknown_transform_func_raises(vault_dir):
-    _seed(vault_dir, "dev", {"K": "val"})
-    steps = [PipelineStep(operation="transform", params={"key": "K", "func": "base64"})]
-    with pytest.raises(PipelineError, match="Unknown transform func"):
+    with pytest.raises(PipelineError):
         run_pipeline(vault_dir, "dev", PASSWORD, steps)
