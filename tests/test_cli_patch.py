@@ -67,3 +67,11 @@ def test_cmd_patch_keys_filter_limits_update(vault_dir):
     data = load_vault(vault_dir, "dev", "pw")
     assert data["A"] == "X"
     assert data["B"] == "2"
+
+
+def test_cmd_patch_value_with_equals_sign(vault_dir):
+    """Ensure values containing '=' are stored correctly (split on first '=' only)."""
+    save_vault(vault_dir, "dev", "pw", {"URL": ""})
+    args = _make_args(vault_dir, "dev", ["URL=http://example.com/?a=1&b=2"])
+    cmd_patch(args)
+    assert load_vault(vault_dir, "dev", "pw")["URL"] == "http://example.com/?a=1&b=2"
